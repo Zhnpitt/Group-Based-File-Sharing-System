@@ -1,0 +1,88 @@
+FileSharing Usage Information
+
+USAGE:
+ To start Group Server: java RunGroupServer [(optional) port number]
+ When the group server is first started, there are no users or groups. Since
+ there must be an administer of the system, the user is prompted via the console
+ to enter a username. This name becomes the first user and is a member of the
+ ADMIN group. No other groups exist. The group server will by default select
+ (and print out) a random port, but a custom port can be passed as the first
+ command line argument.
+
+ To start the File Server: java RunFileServer [(optional) port number] The file
+ server will create a shared_files inside the working directory if one does not
+ exist. The file server is now online. The file server will by default select
+ (and print out) a random port, but a custom port can be passed as the first
+ command line argument.
+
+ To reset the File server completely, delete FileList.bin and the shared_files
+ directory.
+ To reset the Group Server, delete UserList.bin.
+
+
+User Application:
+To start the UserApplication: java UserApplication. This will start the application
+and will prompt you to either exit or join group server. We did not give an option to join 
+the file server because we thought it would be easier to make it a function after joining
+the group server so the user can get their token and then choose to modify files. The user will be
+asked to input their username as well as the server name and port. If they are a valid user, they
+will join the group server. If they choose the exit, the system will shutdown.
+
+Group Client:
+Once they are in the group server they will be given a set of commands they can type to start 
+a function. We Split these into admin only priveleges as well as normal priveleges. They must enter one
+of the following commands
+
+Functions:
+X- Exit: This will disconnect from the group server and return to the beginning menu
+
+C- Create User: This is an admin only function which allows them to create a new user with the name 
+they input 
+
+D- Delete User: This is an admin only function which allows them to delete an existing user with 
+the name they input
+
+G- Create Group: This allows any user to create their own group, they must input the group name
+and a group under that name will be created
+
+F- Delete Group: This allows a user who owns a group to delete the group they own by inputting
+its name
+
+A- Add User to Group: This allows a user to input a users name followed by a group name
+that they own and this will add said user to said group
+
+R- Delete User from Group:  This allows a user to input a users name followed by a group name
+that they own and this will delete the said user from said group
+
+L- List Members: This allows a user to input the name of a group that they own and will list 
+all members of the group
+
+Y- Connect to File Server: This allows a user to connect to file server after inputting the server name
+as well as the port number
+
+
+File Client:
+Once the user is in the File server the application will give them another set of commands they
+can start. They must enter one of the following commands.
+
+X- Exit: This will disconnect user from file server and bring them back to group server menue
+
+U- Upload: This allows a user to input a path to a file on their local system they want to upload
+followed by the name they want to save the file under on the server, followed by the group (that they 
+are either an owner of or member) that they want to share this file to.
+
+D- Download: This allows user to input the name of the file that they have access to and want to download from the server 
+followed by the name they want to save the file onto their local machine
+
+R- Delete File: This allows users to input the name of a file they have access to and want to delete
+from the server
+
+L- List files: If users input this command, all the files they have access to (belonging to a group they are in)
+will be displayed. Any Files displayed can be modified by the user
+
+
+
+
+
+
+

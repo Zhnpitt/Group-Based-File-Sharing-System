@@ -1,2 +1,2 @@
-# Group-Based File Sharing System
- The file sharing system focus on security level OOD.
+Please see the [Phase 5 description](desc/phase_5.pdf) for details.
+

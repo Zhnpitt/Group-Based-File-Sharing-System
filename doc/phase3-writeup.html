@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CS 1653 Project P3 Writeup</title>
+  <style>
+/* BEGIN CHANGES HERE */
+
+/* In this section, you may add CSS styling if desired.
+ * Be sure your writeup still prints legibly. */
+header {
+  text-align: center;
+}
+
+/* END CHANGES HERE */
+  </style>
+  <body>
+    <header>
+      <h1>CS 1653 Project P3 Writeup</h1>
+      <h2>
+<!-- BEGIN CHANGES HERE -->
+
+Haonan Zhang (haz104@pitt.edu) Tyler Courtney (tmc93@pitt.edu)
+
+<!-- END CHANGES HERE -->
+      </h2>
+    </header>
+    <section id="overview">
+      <h2>Overview</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<p>Since our file sharing system as of now has many vulnerabilites within it, we have decided to implement several methods to hopefully solve this problem
+    These methods will use both asymmetric and symmetric key crypto as well, to ensure that data transmission is both secure and effecient.
+    Some of these implementations include: Password based authentication, digital signatures using asymmetric keys, authentication between entities using asymmetric keys and challenges, mutual authentication,
+    and the distribution of symmetric keys using public key cryptography.</p>
+
+
+<!-- END CHANGES HERE -->
+    </section>
+    <section id="threat1">
+      <h2>Threat T1: Unauthorized Token Issuance</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<img src="T1.jpeg" width="1000" height="600">
+
+<p><strong>Problem: </strong> Right now, any person can sign into the system as any user as long as they have a username that is saved in the system. This is
+    a problem because if a malicious user, Loki, attains Thor's username. Loki can sign in as Thor and will in turn attain Thor's token. With this token, Loki can
+    do any action that Thor has access to like, modifying files, creating/deleting groups, etc. This violates Thor's confidentiality and the systems integrity.</p>
+
+<p><strong>Solution: </strong> To help fix this problem, our group has decided to use a password to authenticate a user. When a user is created by the admin, a 12 character password will be generated using a random string generator with and alphabet of 83 characters (83^12 variations) This password
+  is then saved to the specific user in the UserList. The password will then be distributed by the admin to the specific user outside the system. When a user signs in they will input a username and password. The users saved password will be fetched from the UserList and compared to the one inputted, if they 
+  are different, they will be denied entry. Since it can be difficult for a user to remember this random password, we have implemented a way for the user to change their password through the group cient. </p>
+
+<p><strong>Why: </strong> We think a password approach to this problem is the best course of action because it follows the rule of having something you know (our password) and something we have
+    (our token). As long as the user keeps their password private and the admin distributes in a secure way, this should be secure. Since we also have a way now to change the password, it will be easier for a user to remember. 
+    Since we also are under the assumption that the GroupServer is secure, we dont need to worry about it being compromised and the passwords being leaked. If we did, a more robust system to save the passwords would be implemented. We must also assume a secure channel is created before this.</p>
+
+<!-- END CHANGES HERE -->
+    </section>
+    <section id="threat2">
+      <h2>Threat T2: Token Modification/Forgery</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<img src="T2.jpeg" width="1000" height="600">
+
+<p><strong>Problem: </strong> The idea of a user forging/modifying a token is a problem because this allows user to gain access to actions they were not explicitly given. If we have a malicious user Loki, he can modify his token to gain access to files or actions 
+that he originally did not have. Loki could even modify his token to be an Admin token an delete users.</p>
+<p><strong>Solution: </strong>To fix this problem, we are going to use the digital signature of the group server to verify the authenticity of the token. The group server will have a public and private key generated and anytime the group server distributes a token,
+the group server will send the token along with the the token signed using the group servers private key. This signature will be made using SHA256withRSA Algorithm, the token will be converted to a byte arraya and then that data will be signed. This allows any server the user sends said token to can verify it came directly from group server. We plan to modify the UserToken class to allow the token to store the signture of the group server. Then
+the file server will be able to authenticate the signature using the group servers public key available when the file server is created, it will connect to the group server and get its public key. Since there is only 1 group server this is viable. To ensure that the token is not too large to sign we are going to hash the token and sign that hash. When the comparison is done we will then again have to hash what we are comparing against.</p>
+<p><strong>Why: </strong> First, as with all public key crypto, we must assume that the public keys are known by all and private keys are hidden. This signature is unforgeable because only the group server has access to its private key. Any server recieiving the token can ensure the token
+was in fact the one distributed by the group server with its unforgeable signature. If the signature does not match the token, we know it was modified. We must also assume a secure channel is created before this. </p>
+
+<!-- END CHANGES HERE -->
+    </section>
+    <section id="threat3">
+      <h2>Threat T3: Unauthorized File Servers</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<img src="T3.jpeg" width="1000" height="600">
+
+<p><strong>Problem:</strong> As of now, our system has no protection against unauthorized file servers. Meaning that a malicious user, Loki, can pose as a server, Loki can
+    direct users to his server, this user has no way to ensure the integrity of this server so will join thinking it is a system certified server, user uploads files to the server and Loki has access.
+As you can see this breaks both the integrity of our system (User cannot ensure file server is trustworthy) and confidentiality (Users secret files can be seen by Loki). </p>
+<p><strong>Solution:</strong> To counter this threat, our group has decided to use a challenge response method using public key cryptography. The file server will have a public and private key generated after it is created. The user will have access to the public key through a file server administrator, given to them outside the system.
+With this public key, the user can send a random nonce genreated with a SecureRandom generator encrypted with the file servers public key (the challenge). The file server must send back the Nonce and then the user can compare.(The response) We did have to implement a list of servers we already know so then we can store the file servers public keys in said list.</p>
+<p><strong>Why: </strong> Assuming private keys are secure, this is secure. Once the user sends their Nonce: the file server must use its unique and secure private key that only it has access to to decrypt. Once it sends back the correct nonce. We must also assume a secure channel is established before this. To aquire the public key, we must first assume that the first time we connect to a file server, it is secure so we can get the public key and save it to the list.
+After this, anytime we connect to a file server we use that public key to send the challenge. </p>
+
+<!-- END CHANGES HERE -->
+    </section>
+    <section id="threat4">
+      <h2>Threat T4: Information Leakage via Passive Monitoring</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<img src="T4.jpeg" width="1000" height="600">
+
+<p><strong>Problem:</strong> The "biggest" problem our system has is that really none of the transmissions between the client and servers is secure. This can allow our passive attacker, Loki, to look into a transmission and perhaps find a persons password, files, etc. To keep Loki from seeing these things, we need a secure way to encrypt messages.
+    However, since there is alot of data being transferred back and forth, we also need an effecient way as well.</p>
+<p><strong>Solution:</strong> To counter this we are going to use public key crypto to share symmetric keys with the server we are communicating with. First the client will generate the symmetric 128 bit AES key and send it to the server along with a random nonce R using the servers public key. The server will send back the random nonce
+ to ensure the integrity of the server (part of threat 3) we now have a secure symmetric key to exchange messages for the rest of the session. A new symmetric key will be generated for each session between user and the server. The symmetric key wil be encrypted using RSA with an ECB block mode since we are only sending a key. Once we have a shared symmetric key, we then can use AES and change the block mode depending on the function. Most will be using CFB since it is the best
+for typing inputs into a terminal and when we are downloading/uploading files we shall use CBC. We will initialize an IV and send that along with our message to ensure the reciever has it to decrypt the message. As stated in T3, the client will have the FS public key given to them by file administrator, the group servers public key will be sent to a user when they try to connect.</p>
+<p><strong>Why: </strong>  The reason this is secure is that we are first sending the symmetric key and nonce using that servers public key to encrypt, meaning only the server can decrypt using private key. We then can authenticate the server once it sends back the random nonce with the private symmetric key. If we look at this from the perspecive of
+connecting to each type of server we will see that for the group server, even if the user is in fact malicious, after they establish a symmetric key, the user must send their username/password as well to authenticate the user. For file server the same thing can happen but they must send their random nonce which will authenticate them. A man in the middle can of course relay all these messages but will have no way of seeing the messages or having the shared
+key. The problem could be seen that the server has no idea at the start who is sending this symmetric key, but in the case of the group server, the user will be verified with a username and password. For a file server, the user will be verified using a token, and the only way for a user to get a token is to be verified by the group server. We must then assume that verified users will not then leak information. The public keys can be assumed to be secure if the File Server Admin gives out the keys securely and since the group server is stated to be secure, it is trusted.</p>
+
+<!-- END CHANGES HERE -->
+    </section>
+    <section id="discussion">
+      <h2>Discussion</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<p>There was alot of changes we had to go through and many meetings with Jim and Dr.Garrison to come up with a good foundation for our security implementation. The most 
+  tricky part was figuring out T4. We knew however that public key crypto is a great way to exchange a symmetric key which can then be used to efficiently send data. We started with a DH key exchange but we decided to go 
+  with a public key, key exchange because it can be seen as simpler to implement. There does come a problem that any unverified user can interact with the group server, but after they exchange keys they need to verify using username and password. T1 we had
+  a grandious idea of storing passwords as hashes but after our initial meeting with Dr. Garrison, he brought up the point that its not entirely needed since our GS is secure (EC maybe?). T2 was easy to imagine how we were going to do it but points brough up such as what if the token was too large too sign but then when meeting with Jim we realized a hash
+  is a good way to compress data so we came to that conclusion as well. T3 was an interesting one as well since at first with our implementation to start, it was prone to delegation attacks which we believe to be protected from after changing threat 4.</p>
+
+  Retrospect:
+
+  <p>We realized a little too late that T4 is not secure. It is prone to a replay attack. A better way to implement it was to use signed diffie hellman key exchange which will authenticate both user and server.
+  We thought that since the symmetric key was changing everytime and that even though a random user could share a symmetric key, they would have to then be authenticated with their username and password. While this is true, it is still prone
+  to a replay attack. We could have had the user send their own DH key signed with its own private key. The server can verify the signature and do vice versa. Then both the user and server are now authenticated. We wanted to steer clear of having 
+  keypairs for users since it would be difficult to store the private keys. This seems to be the only way however to itigate a MITM and replay attack. We also were thinking of implementing a hashed salted password using a computationally slow hash function which can mitigate against offline attacks.
+  Sadly, we ran out of time. We had the idea of DH at first but changed our ideas and we ended up doing this again. Moving forward we need to be sure not to change our plans so much.
+</p>
+
+<!-- END CHANGES HERE -->
+    </section>
+  </body>
+</html>

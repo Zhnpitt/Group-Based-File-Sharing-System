@@ -1,0 +1,4 @@
+Once inside src/ folder,
+
+COMPILE:  javac -cp .:whichever-dierectory/bcprov-jdk18on-172.jar *.java
+

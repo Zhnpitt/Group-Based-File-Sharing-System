@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CS 1653 Project P4 Writeup</title>
+  <style>
+/* BEGIN CHANGES HERE */
+
+/* In this section, you may add CSS styling if desired */
+header {
+  text-align: center;
+}
+
+/* END CHANGES HERE */
+  </style>
+  <body>
+    <header>
+      <h1>CS 1653 Project P4 Writeup</h1>
+      <h2>
+<!-- BEGIN CHANGES HERE -->
+
+Haonan Zhang (haz104@pitt.edu) Tyler Courtney (tmc93@pitt.edu)
+
+<!-- END CHANGES HERE -->
+      </h2>
+    </header>
+    <section id="overview">
+      <h2>Overview</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<p>To be able to mitigate some of the threats defined in phase 4, we have implemented several more systems to ensure the confidentiality and integrity of our clients.
+    We have included HMACS to protect against modification, sequential messaging to protect against reordering and replay, group keys 
+</p>
+
+
+<!-- END CHANGES HERE -->
+    </section>
+    <section id="threat5">
+      <h2>Threat T5: Message Reorder, Replay, or Modification</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<img src="T5.jpg" width="1000" height="600">
+
+<p>Problem: Threat 5 is a problem because if an attacker is able to modify a message, this can cause several unwanted results such as 
+    the attacker modifying an upload file message into a delete file message. An attacker can also replay a certain message which can cause an unwanted outcome or information being shown.
+    Lastly, an attacker can reorder a set of messages in a way that results in unwanted results.
+</p>
+
+<p>Solution: Since there are 3 types of attacks we need to be wary of here, our group split up the attacks and came up with ways to handle each of them. We were then able to see that protecting against a reorder attack and a replay attack an be mitigated using the same 
+    type of mitigation tactic, by using a sequnce number for each message sent. This can fend off replay attacks and reorder attacks since both of those attacks will result in the sequence number becoming out of order and if at anytime the messages sequnce is not in order, the connection is ended. To mitigate a modification attack,
+    we have decided to use an HMAC of the message that will be sent along with the message. A seperate integrity key will be used for the HMAC apart from the symmetric key being used for message encryption. The the handshake between a client and server will begin as follows:
+    <ol>
+        <li>Client will send a random nonce (R), an encryption key (Ke), and an integrity key (Ki). This whole message will be encrypted with the servers public key.</li>
+        <li>The server will send back R along with a sequence number S (randomly generated), both encrypted with Ke. Then an HMAC of the ENCRYPTED message. The HMAC will use SHA256 as its hash function and Ki as its key</li>
+        <li>The client can then calculate the HMAC of the message sent using Ki and confirm it matches the HMAC sent. If not the message was modified. </li>
+        <li>Now, the server is authenticated but the client is not, so the next message sent will be the clients username and password (For the group server) or their token(for the file server), along with S+1. As before and for all messages from here on, an HMAC will be sent of the message.</li>
+        <li>For the group server, they can authenticate the user has the correct password and the correct sequence number, as well as the HMAC compared to the HMAC of the message sent. The File server will do the same except verify the token has not been modified (T2 of phase3)</li>
+        <li>Now, both parties are authenticated and normal functionality can continue. Encrypting all messages with Ke, including S+1 in all messages, and sending an HMAC of all encrypted messages. </li>
+    </ol>
+</p>
+
+<p>Why: We believe this mitigates against replay and reorder because if an attacker resends the same message over and over, the sequence number will not line up. The same logic can be said for if the attacker reorders the message. Even if the attacker was able to change the sequence number, the HMAC will
+    then not match the message and will fail. Since both keys are encrypted with the group servers public key and the group server is 100% trustworthy and safe, no one can derive those keys. While an attacker could pose as a client for the first few steps, they will not be able to be authenticated without a proper password on the group server. 
+    For the file server, only an authenticated user on the group server is able to recieve a token, so once the file server verifies the token has not been tampered with, the user is authenticated.</p>
+
+    <p>Details:
+        <ol>
+            <li>Both Ke and Ki will be 128 bit symmetric keys</li>
+            <li>S will be 16 bytes</li>
+            <li>R will be 16 bytes generated using SecureRandom</li>
+            <li>RSA keysizes are 4096 bytes</li>
+            <li>HMAC uses SHA256</li>
+        </ol>
+
+    </p>
+
+
+
+<!-- END CHANGES HERE -->
+    </section>
+    <section id="threat6">
+      <h2>Threat T6: File Leakage</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<img src="T6.jpg" width="900" height="500">
+
+<p>Problem: If file servers leak files this can jeapordize the confidentiality of our clients. If a file server leaks one of Loki's files that he uploaded, a random party not only has information
+    vital to Loki, but vital to any of Loki's groups that he is apart of.</p>
+
+<p>Solution: Our solution to this problem will start with the group server creating a key array for each group, along with a Symmetric key that will be the first key stored in the KeyArray for that group. 
+    A new key will be generated for the group each time a user is deleted from the group and will be added to the array at the next index. When connecting to the file server the user will input what group they are uploading/downloading for. The group server will send the groups KeyArray to the user if they belong to it. The files when uploaded will be encrypted using the latest key generated in the groups KeyList using a randomly generated IV. The user will input the encrypted file along with the IV used, as well as the index to the key they used. When downloading, the user can download the encrypted file(s) that they want and the File server will
+    tell the client the index of the key used to encrypt each file. The user can then search the KeyArray for the specific key and get the IV from the ciphertext and then decrypt using said key.
+
+    Uploading:
+    <ol>
+        <li>User will request to join File server, they will be asked which group they will be uploading files for</li>
+        <li> The user will input the group name and then the GS will check if they belong to said group and if they do, they will be sent the KeyArray for said group</li>
+        <li>Now the user has the groups encryption keys, they can join the file server</li>
+        <li>When they choose to upload, they will first encrypt the file using the key and random IV using CBC. The file will be uploaded after the user inputs the name of the file and the index of the key they used to encrypt. </li>
+    </ol>
+
+    Downloading:
+    <ol>
+        <li>User will request to join FS and will follow same starting steps as for uploading</li>
+        <li>User can download any encrypted file for the group they have the KeyArray for</li>
+        <li>When downloading, they will recieve the encrypted file along with the index of the key used to encrypt</li>
+        <li>User can search the KeyArray to find the correct key</li>
+        <li>User can now decrypt the file, as they now have the key and IV (from ciphertext)</li>
+    </ol>
+</p>
+
+<p>Why: We can see that this solution can be seen as unintuitive, however we do believe this is a valid solution to the problem. Even if a file is leaked, it will be encrypted and the attacker will have no way of getting the key used to decrypt. If a user was able to download a file belonging to another group, they
+    will not be able to recieve the key for decryption since they do not belong to that group. There is some User experience problems since the user can only upload/download files to one specific group per session. 
+    The KeyList can also became extremely large depending on hwo many deletions of users are done. All in all their are a lot of steps to this process but it does seem to solve the base problem. However, we are open to ideas to better the user experience.</p>
+
+<p>Details:
+    <ol>
+        <li>GroupKeys are 128 bits</li>
+        <li>IV's are 16 bytes generated using SecureRandom</li>
+        <li>Agreed block cipher of CBC for all encrypt/decrypt of files</li>
+        <li>Keys will be stored in an array and the index will be given to user when downloading to allow decryption</li>
+        <li>IV will be stored with the file</li>
+    </ol>
+</p>
+
+
+<!-- END CHANGES HERE -->
+    </section>
+    <section id="threat7">
+      <h2>Threat T7: Token Theft</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<img src="T7.jpg" width="1000" height="600">
+
+<p>Problem: If A file server is able to steal user1's token and give it to another user2, then user2 can then use user1's token to have access to any actions that user1 is able to do. They can download files, upload files, delete groups, etc. </p>
+
+<p>Solution: Since part of the threat states that a token is basically only able to used on whatever server it was stolen from, we came up with the idea to have a differentiating field in a users token that will be checked by the file server. More specifically, when the user wants to join the file server, the user will enter the public key of the file server they want to join. The GS will send a token that includes the public key of the file server within it.
+    When a user joins the file server the file server will check if the public key in the  token matches its own, if it does not the connection is terminated. We are also verifying that public key by using it for our handshake we implemented in phase3, the handshake only works if the file server has the correspnding private key. Also, we will be adding a timestamp in the token that the file server can check, if we are past the expired time, the user cannot join. The token is still signed by the group server as well as from phase 3. Steps of how this process will go is as a follows.
+    <ol>
+        <li>User wants to join file server</li>
+        <li>User will give the public key of the file server they want to join</li>
+        <li>GS will distribute a signed token that includes the said file servers public key as well as the a timestamp for the expiration of said token</li>
+        <li>User will join file server and user will use the same public key as the one in the token for the handshake.</li>
+        <li>If the handshake works, and the timestamp is not expired then the user can use the file server</li>
+    </ol>
+</p>
+
+<p>Why: We believe this mitigtes the threat because every file server should have a a different public key and we can then test that this is in fact the file servers public key by using it in our handshake. If it works, we know for a fact that this is the file server we want to connect to. If 
+    we only use the public key that we have within our token, given to us by the file server, then we only will have access to that certain file server. The timestamp will also make sure that after an hour, no users can use that token, so a stolen token becomes useless after an hour. As from phase3, our token
+    is signed so if it is somehow changed like to change the public key or timestamp, the file server will know it was tampered with. We must assume that the user always uses the public key within the token for th ebeginning handshake for this to be viable. 
+</p>
+
+<!-- END CHANGES HERE -->
+    </section>
+    <section id="discussion">
+      <h2>Discussion</h2>
+<!-- BEGIN CHANGES HERE -->
+
+<p>When beginning with planning our mitigation techniques and starting out on t5, many of these techniques were fresh in our head from lecture so the idea sequential messages came easy. We needed to look a little farther back into 
+    the lectures to come up with an idea for modification. Since signing every message can be very ineffecient, we landed on using HMACs. In large part because the party does not need to decrypt anything if the HMAC does not match up with the encrypted message. T6 took alot of trial and error. It still seems like
+    a very unintuitive and bloated system but it seems like a feasible option for the scope of this project. We knew that group keys were going to be used but the details of how they will be distributed and stored took the longest time. There are some better possible ways to implement this. Such as the GS sending a list of all the groups a user belongs to 
+    and the lates key for each included, so a Map with the key being a group and the value being the latest encryption key. This seemed pretty infeasible to incorporate once the number of groups a person belongs to reaches high numbers. The several steps we force the user to go through to download an encrypted file and then get the key from the group server is not user friendly either.
+    We are still thinking of ideas to better the process for t6. T7 was simpler to come up with an idea because we just needed to think of a way to differentiate tokens so file servers can check.Checking the file servers public key seemed to be the best step.</p>
+
+<p>We think that our implementation for threat 5 actually improves our threat 3 and threat 4 from phase 3. Since we are sending the same handshake between client and server but also adding the HMAC to protect against modification and the sequence number to protect against reorder or replay attacks.
+    Threat 2 is still intact as we are still sending a signed toke but it actually also helps with our threat 7 implementation since if a user or file server tried to change the key that is stored in the token, the signature will not match. Still, the base use for the signed token is still valid. T1 is still being used as the authentication for the 
+    user as well. We are still authenticating the file server as well since we are sending a nonce in a message encrypted with the servers public key. Finally, threat 4 is still being protected against as we still send a symmetric key to be used for the session and we are sending it using the servers public key. Having the timestamp further protects against attacks since it does not allow users to save old tokens and use them later.</p>
+    
+    
+
+
+
+<!-- END CHANGES HERE -->
+    </section>
+  </body>
+</html>
